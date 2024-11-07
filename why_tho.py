@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-class TokenLinear(nn.Module):
+
+
+class TransformerLinear(nn.Module):
     def __init__(self, in_features, out_features, num_tokens):
         super().__init__()
         assert in_features % 2 == 0, f"in_features must be even, got {in_features}"
