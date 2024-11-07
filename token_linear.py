@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # Token Linear for Weight Extrapolation.
-class TokenLinear(nn.Module):
+class TokenLinearGL(nn.Module):
     def __init__(self, in_features, out_features, num_tokens):
         super().__init__()        
         self.num_tokens = num_tokens
