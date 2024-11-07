@@ -106,7 +106,6 @@ class TransformerLinear(nn.Module):
         return h
 
     def forward(self, x, token_mask=None):
-        # Process frequency tokens through transformer
         z_tokens = torch.randn(self.num_tokens, self.z_dim, device=x.device, dtype=x.dtype)
         processed_tokens = self.transformer_block(z_tokens)
         
