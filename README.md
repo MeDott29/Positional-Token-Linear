@@ -1,6 +1,6 @@
 # Positional Token Linear for Dynamic Weight Extrapolation
 
-It works. Love help testing it.
+It works (loss go down, loss go down more when more positions). Love help testing it.
 
 ```
 @misc{algomancer2024,
