@@ -41,10 +41,6 @@ class TokenLinearGL(nn.Module):
         out = (attn_map * (attn_map.size(-1) ** 0.5)) / torch.sqrt(attn_map.square().sum(-1, keepdim=True))
         return torch.nn.functional.gelu(out)
 
-    def transform_standard(self, attn_map):
-        scaled = attn_map / math.sqrt(self.in_features)
-        return F.softmax(scaled, dim=-1)
-
     def forward(self, x, token_mask=None):
         # Project from frequency space to key/value space
         key_tokens = self.key_up(self.tokens)
