@@ -1,4 +1,5 @@
 import torch
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -12,19 +13,19 @@ class TokenLinearGL(nn.Module):
         
         # Create frequency mixture input
         positions = torch.linspace(0, 1, num_tokens).unsqueeze(-1)  # [num_tokens, 1]
-        freqs = torch.linspace(1, 10, 32).unsqueeze(0)  # [1, 8] different frequencies
-        angles = positions * freqs * 2 * math.pi  # [num_tokens, 8]
-        pos_enc = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1)  # [num_tokens, 16]
+        freqs = torch.linspace(1, 10, 64).unsqueeze(0)  # [1, 64] different frequencies
+        angles = positions * freqs * 2 * math.pi  # [num_tokens, 64]
+        pos_enc = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1)  # [num_tokens, 128]
         self.register_buffer('tokens', pos_enc)
         
         # MLP projections from frequency space
         self.key_up = nn.Sequential(
-            nn.Linear(16, 64, bias=False),
+            nn.Linear(128, 64, bias=False),
             nn.GELU(),
             nn.Linear(64, in_features, bias=False)
         )
         self.value_up = nn.Sequential(
-            nn.Linear(16, 64, bias=False), 
+            nn.Linear(128, 64, bias=False), 
             nn.GELU(),
             nn.Linear(64, out_features, bias=False)
         )
