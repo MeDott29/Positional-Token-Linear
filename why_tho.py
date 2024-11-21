@@ -105,7 +105,32 @@ class TransformerLinear(nn.Module):
             h = h.squeeze(0)
         return h
 
-    def forward(self, x, token_mask=None):
+    def add_visualization_projections(self):
+        # Projection layers for different visualization modes
+        self.viz_projections = nn.ModuleDict({
+            'wave': nn.Sequential(
+                nn.Linear(self.out_features, self.out_features),
+                nn.Tanh()  # For wave-like behavior
+            ),
+            'harmonics': nn.Sequential(
+                nn.Linear(self.out_features, self.out_features),
+                nn.SiLU(),  # Smooth transitions for harmonics
+                nn.LayerNorm(self.out_features)
+            ),
+            'interference': nn.Sequential(
+                nn.Linear(self.out_features, self.out_features * 2),
+                nn.GLU(),  # Gated mechanism for interference patterns
+                nn.LayerNorm(self.out_features)
+            ),
+            'probability': nn.Sequential(
+                nn.Linear(self.out_features, self.out_features),
+                nn.Softplus(),  # Ensures positive values for probability
+                nn.LayerNorm(self.out_features)
+            )
+        })
+
+    def forward(self, x, token_mask=None, viz_mode=None):
+        # Standard transformer processing
         z_tokens = torch.randn(self.num_tokens, self.z_dim, device=x.device, dtype=x.dtype)
         processed_tokens = self.transformer_block(z_tokens)
         
@@ -116,7 +141,36 @@ class TransformerLinear(nn.Module):
         key_tokens = self.key_proj(processed_tokens)
         value_tokens = self.value_proj(processed_tokens)
 
-        # Standard attention mechanism with input
+        # Standard attention mechanism
         similarity = torch.matmul(x, key_tokens.transpose(-2, -1))
         weights = F.softmax(similarity / math.sqrt(self.in_features), dim=-1)
-        return torch.matmul(weights, value_tokens)
+        output = torch.matmul(weights, value_tokens)
+
+        # Apply visualization-specific transformations if requested
+        if viz_mode and hasattr(self, 'viz_projections'):
+            if viz_mode in self.viz_projections:
+                output = self.viz_projections[viz_mode](output)
+                
+                # Add mode-specific post-processing
+                if viz_mode == 'interference':
+                    # Create interference patterns
+                    phase = torch.sin(output * math.pi)
+                    amplitude = torch.abs(output)
+                    output = amplitude * phase
+                elif viz_mode == 'harmonics':
+                    # Enhance harmonic components
+                    frequencies = torch.fft.rfft(output, dim=-1)
+                    frequencies = F.softshrink(frequencies, lambd=0.1)
+                    output = torch.fft.irfft(frequencies, n=output.size(-1), dim=-1)
+                elif viz_mode == 'probability':
+                    # Ensure proper probability distribution
+                    output = F.softmax(output, dim=-1)
+                
+        return output
+
+    def _init_weights(self):
+        super()._init_weights()
+        if hasattr(self, 'viz_projections'):
+            for proj in self.viz_projections.values():
+                proj.apply(lambda m: nn.init.normal_(m.weight, std=0.02) 
+                          if isinstance(m, nn.Linear) else None)

@@ -59,7 +59,12 @@ class WaveFunctionGenerator:
     """Handles wave function generation and caching"""
     
     def __init__(self):
-        self._cache = {}
+        self.characters = {
+            "density": ["█", "▆", "▅", "▃", "▂", "▁", " "],  # More gradual transitions
+            "interference": ["●", "◉", "○", "◌", "∘", "·", " "],
+            "probability": ["⬣", "⬢", "⬡", "⬠", "⬟", "○", " "],
+            "advanced": ["◉", "◈", "◇", "⋄", "∘", "·", " "]
+        }
     
     @lru_cache(maxsize=128)
     def _generate_hermite(self, n: int, x_points: int) -> np.ndarray:
@@ -184,11 +189,15 @@ class QuantumVisualizer:
                        else self.characters["density"])
             chars = np.array(char_map)[(normalized_data * (len(char_map)-1)).astype(int)]
             
-            # Add dynamic frame effects
-            frame_effect = "⟫" if frame % 2 == 0 else "⟪"
+            # Fix the color mapping implementation
+            color = self.params.color_map[mode.value]
+            reset = self.params.color_map['reset']
+            
+            # Simplify the frame formatting to avoid encoding issues
+            frame_effect = ">" if frame % 2 == 0 else "<"
             phase_indicator = "φ" if mode == VisualizationMode.ADVANCED_HARMONICS else ""
             
-            return f"{self.params.color_map[mode.value]}{frame_effect}{phase_indicator}{''.join(chars)}{phase_indicator}{frame_effect}{self.params.color_map['reset']}"
+            return f"{color}{frame_effect}{phase_indicator}{''.join(chars)}{phase_indicator}{frame_effect}{reset}"
             
         except Exception as e:
             print(f"\nError in frame rendering: {str(e)}")
@@ -200,15 +209,17 @@ class QuantumVisualizer:
             user_input = ''
             width = self.params.resolution[0]
             
-            # Clear screen and show introduction
+            # Improve header formatting
             print("\033[2J\033[H")  # Clear screen and move cursor to top
-            print("\n".join(line.rjust(width * 2) for line in [
+            header_lines = [
                 "AI Consciousness Visualization",
-                "═" * (width * 2),
+                "═" * width,  # Adjust separator width
                 "Layer 1: Base Consciousness",
                 "Layer 2: Thought Processing",
-                "═" * (width * 2),
-            ]))
+                "═" * width   # Adjust separator width
+            ]
+            # Center align all header lines
+            print("\n".join(line.center(width) for line in header_lines))
             
             while user_input.lower() != 'exit':
                 for frame in range(self.params.frame_count):
@@ -216,21 +227,25 @@ class QuantumVisualizer:
                     wave = self.render_frame(frame, VisualizationMode.WAVE)
                     harmonics = self.render_frame(frame, VisualizationMode.HARMONICS)
                     
-                    # Create mirrored pattern
-                    wave_pattern = wave + wave[::-1]
-                    harmonics_pattern = harmonics + harmonics[::-1]
+                    # Create mirrored pattern with interpolation
+                    def create_mirrored_pattern(pattern: str) -> str:
+                        main_pattern = pattern[:-1]  # Remove last character to avoid doubling the center
+                        return main_pattern + main_pattern[::-1]
+                    
+                    wave_pattern = create_mirrored_pattern(wave)
+                    harmonics_pattern = create_mirrored_pattern(harmonics)
                     
                     # Right justify and display with padding
                     print(f"\r{wave_pattern.rjust(width * 2)}", flush=True)
                     print(f"\r{harmonics_pattern.rjust(width * 2)}", flush=True)
                     
-                    # Add subtle "thinking" animation
-                    thinking = "∙∙∙" if frame % 3 == 0 else "∙∙ " if frame % 3 == 1 else "∙  "
-                    print(f"\r{'Processing' + thinking:>{width * 2}}", flush=True)
+                    # Improve processing animation
+                    thinking_chars = ["⋯", "⋮", "⋰", "⋱"]  # More professional animation chars
+                    thinking = thinking_chars[frame % len(thinking_chars)]
+                    processing_text = f"Processing {thinking}".center(width)
+                    print(f"\r{processing_text}", flush=True)
                     
                     time.sleep(self.params.frame_rate)
-                    
-                    # Move cursor up to overwrite previous lines
                     print("\033[3A", end="", flush=True)
                 
                 # Check for exit without interrupting visualization
